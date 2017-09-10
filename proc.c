@@ -124,6 +124,7 @@ userinit(void)
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
+  cprintf("creat the user process: %d\n",p->pid);
   
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
@@ -342,6 +343,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      cprintf("running process is: %d\n",p->pid);
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
