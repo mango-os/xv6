@@ -370,23 +370,53 @@ iunlockput(struct inode *ip)
 
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
+// Big Files
+// static uint
+// bmap(struct inode *ip, uint bn)
+// {
+//   uint addr, *a;
+//   struct buf *bp;
+
+//   if(bn < NDIRECT){
+//     if((addr = ip->addrs[bn]) == 0)
+//       ip->addrs[bn] = addr = balloc(ip->dev);
+//     return addr;
+//   }
+//   bn -= NDIRECT;
+
+//   if(bn < NINDIRECT){
+//     // Load indirect block, allocating if necessary.
+//     if((addr = ip->addrs[NDIRECT]) == 0)
+//       ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+//     bp = bread(ip->dev, addr);
+//     a = (uint*)bp->data;
+//     if((addr = a[bn]) == 0){
+//       a[bn] = addr = balloc(ip->dev);
+//       log_write(bp);
+//     }
+//     brelse(bp);
+//     return addr;
+//   }
+
+//   panic("bmap: out of range");
+// }
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint addr, *a;
-  struct buf *bp;
-
+  uint addr, *a, *indirect, *double_indirect,indirect_idx, double_indirect_idx;
+  struct buf *bp, *bp2;
+ 
   if(bn < NDIRECT){
     if((addr = ip->addrs[bn]) == 0)
-      ip->addrs[bn] = addr = balloc(ip->dev);
+      ip->addrs[bn] = addr =balloc(ip->dev);
     return addr;
   }
   bn -= NDIRECT;
-
+ 
   if(bn < NINDIRECT){
-    // Load indirect block, allocating if necessary.
+    // Load indirect block, allocating ifnecessary.
     if((addr = ip->addrs[NDIRECT]) == 0)
-      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+      ip->addrs[NDIRECT] = addr =balloc(ip->dev);
     bp = bread(ip->dev, addr);
     a = (uint*)bp->data;
     if((addr = a[bn]) == 0){
@@ -396,10 +426,38 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     return addr;
   }
-
+  bn -= NINDIRECT;
+ 
+  if (bn < NINDIRECT*NINDIRECT) {
+    // Load first indirect block, allocating ifnecessary.
+    if((addr = ip->addrs[NDIRECT + 1]) == 0)
+      ip->addrs[NDIRECT + 1] = addr =balloc(ip->dev);
+ 
+    bp = bread(ip->dev, addr);
+    indirect = (uint *) bp->data;
+    indirect_idx = bn / NINDIRECT;
+ 
+    if ((addr = indirect[indirect_idx]) == 0) {
+      addr = indirect[indirect_idx] =balloc(ip->dev);
+      log_write(bp);
+    }
+ 
+    bp2 = bread(ip->dev, addr);
+    double_indirect = (uint *) bp2->data;
+    double_indirect_idx = bn % NINDIRECT;
+ 
+    if((addr = double_indirect[double_indirect_idx]) == 0) {
+      addr =double_indirect[double_indirect_idx] = balloc(ip->dev);
+      log_write(bp2);
+    }
+ 
+    brelse(bp2);
+    brelse(bp);
+    return addr;
+  }
+ 
   panic("bmap: out of range");
 }
-
 // Truncate inode (discard contents).
 // Only called when the inode has no links
 // to it (no directory entries referring to it)
