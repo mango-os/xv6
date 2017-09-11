@@ -88,6 +88,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = p->pid*10;
+  p->current_priority = p->priority;
 
   release(&ptable.lock);
 
@@ -139,7 +141,7 @@ userinit(void)
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
-
+  
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -335,23 +337,36 @@ scheduler(void)
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
+      {
         continue;
+      }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      cprintf("running process is: %d\n",p->pid);
+      if(p->current_priority!=0)
+      {
+        p->current_priority = p->current_priority -1;
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        cprintf("%d running process is: %d, it's current priority is %d\n",c->apicid, p->pid, p->current_priority);
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        if(p->current_priority!=0)p->state = RUNNABLE;
+        cprintf("it's state is %d\n",p->state);
+        //if(c->apicid==1&&p->state==RUNNABLE) cprintf("it's state is runnable\n");
+        //else cprintf("not runnable\n");
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        p--;
+      }
+      else
+        p->current_priority = p->priority;
     }
+
     release(&ptable.lock);
 
   }
