@@ -35,6 +35,7 @@ OBJS = \
 #TOOLPREFIX = 
 
 # Try to infer the correct TOOLPREFIX if not set
+TOOLPREFIX := i686-elf-
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-jos-elf-'; \
@@ -118,6 +119,17 @@ kernel: $(OBJS) entry.o entryother initcode kernel.ld
 	$(OBJDUMP) -S kernel > kernel.asm
 	$(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 
+iso: kernel
+	mkdir -p isodir
+	mkdir -p isodir/boot
+	mkdir -p isodir/boot/grub
+	cp kernel isodir/boot/kernel
+	echo 'menuentry "xv6" {multiboot /boot/kernel}' > isodir/boot/grub/grub.cfg
+	grub-mkrescue -o xv6.iso isodir
+
+run-iso: iso
+	qemu-system-i386  -cdrom xv6.iso  -k en-us
+
 # kernelmemfs is a copy of kernel that maintains the
 # disk image in memory instead of writing to a disk.
 # This is not so useful for testing persistent storage or
@@ -181,10 +193,10 @@ fs.img: mkfs README $(UPROGS)
 -include *.d
 
 clean: 
-	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
+	rm -rf *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs mkfs \
-	.gdbinit \
+	.gdbinit isodir \
 	$(UPROGS)
 
 # make a printout
