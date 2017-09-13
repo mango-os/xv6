@@ -12,7 +12,7 @@ xv6原来的文件系统实现较为完整与复杂，但也有有一些缺陷�
 可以添加一些快捷键支持，例如tab补全、ctrl c终止进程等。
 ## 可以增加部分：
 #### 尝试增加功能
-增加一些命令，例如find等，加入gui（https://github.com/search?q=xv6+gui ）。
+增加一些命令，例如find等，加入gui（https://github.com/search?q=xv6+gui ），多线程（https://github.com/MrHohn/xv6Extension-MultiThreads ）。
 #### 尝试移植等工作
 64位移植。  
 交叉编译一些已有的开源应用进去。
