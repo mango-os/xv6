@@ -532,3 +532,13 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+void
+killproc()
+{
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == RUNNING)
+      kill(p->pid);
+  }
+}
