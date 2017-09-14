@@ -142,6 +142,20 @@ getcmd(char *buf, int nbuf)
 }
 
 int
+cmdcmp(char *buf,char *cmd,int len)
+{
+  int i;
+  if(buf[len]!=' ')
+    return 0;
+  for(i = 0;i < len;++i)
+  {
+    if(buf[i]!=cmd[i])
+      return 0;
+  }
+  return 1;
+}
+
+int
 main(void)
 {
   static char buf[100];
@@ -157,7 +171,7 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
-    if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
+    if(cmdcmp(buf,"cd",2)){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
       if(chdir(buf+3) < 0)
