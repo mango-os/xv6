@@ -354,7 +354,7 @@ scheduler(void)
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
-        if(p->current_priority!=0)p->state = RUNNABLE;
+        // if(p->current_priority!=0)p->state = RUNNABLE;
         cprintf("it's state is %d\n",p->state);
         //if(c->apicid==1&&p->state==RUNNABLE) cprintf("it's state is runnable\n");
         //else cprintf("not runnable\n");
